@@ -11,59 +11,57 @@ struct DrinkDetailView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(drinksToday(), id: \.self) { drink in
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(icon(for: drink.type ?? "water"))
-                                        .font(.title3)
-                                    Text(drink.type?.capitalized ?? "Unknown")
-                                        .bold()
-                                    Spacer()
-                                    Text("\(drink.amount) ml")
-                                        .font(.subheadline)
-                                }
-
-                                HStack {
-                                    Spacer()
-                                    Text("Hydration: \(hydrationMl(for: drink)) ml (\(hydrationPercent(for: drink))%)")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                    Spacer()
-                                }
-
-                                let n = nutrition(for: drink)
-                                HStack {
-                                    Spacer()
-                                    Text("Calories: \(n.cal) • Carbs: \(n.carbs)g • Protein: \(n.protein)g • Fat: \(n.fat)g")
-                                        .font(.caption2)
-                                        .foregroundColor(.gray)
-                                    Spacer()
-                                }
+                List {
+                    ForEach(drinksToday(), id: \.self) { drink in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(icon(for: drink.type ?? "water"))
+                                    .font(.title3)
+                                Text(drink.type?.capitalized ?? "Unknown")
+                                    .bold()
+                                Spacer()
+                                Text("\(drink.amount) ml")
+                                    .font(.subheadline)
                             }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    delete(drink)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+
+                            HStack {
+                                Spacer()
+                                Text("Hydration: \(hydrationMl(for: drink)) ml (\(hydrationPercent(for: drink))%)")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                Spacer()
                             }
-                            .swipeActions(edge: .leading) {
-                                Button {
-                                    editingDrink = drink
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.blue)
+
+                            let n = nutrition(for: drink)
+                            HStack {
+                                Spacer()
+                                Text("Calories: \(n.cal) • Carbs: \(n.carbs)g • Protein: \(n.protein)g • Fat: \(n.fat)g")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                                Spacer()
                             }
                         }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                delete(drink)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        .swipeActions(edge: .leading) {
+                            Button {
+                                editingDrink = drink
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.blue)
+                        }
                     }
-                    .padding(.top)
-                    .padding(.bottom, 100)
                 }
+                .listStyle(.insetGrouped)
+                .padding(.bottom, 8)
 
                 Divider()
 

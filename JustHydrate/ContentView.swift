@@ -4,8 +4,9 @@ import CoreData
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @FetchRequest<Drink>(
+    @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Drink.timestamp, ascending: false)],
+        predicate: NSPredicate(format: "timestamp >= %@", Calendar.current.startOfDay(for: Date()) as NSDate),
         animation: .default)
     private var drinks: FetchedResults<Drink>
 
@@ -32,18 +33,35 @@ struct ContentView: View {
                                     .font(.caption2)
 
                                 HStack(spacing: 2) {
-                                    if (drink.type ?? "").contains("coffee") {
-                                        Image(systemName: "bolt.fill").font(.system(size: 10))
-                                    } else { Spacer().frame(width: 10) }
+                                    Group {
+                                        if (drink.type ?? "").contains("coffee") {
+                                            Image(systemName: "bolt.fill")
+                                        } else {
+                                            Color.clear
+                                        }
+                                    }
+                                    .frame(width: 10, height: 10)
 
-                                    if (drink.type ?? "").contains("tea") {
-                                        Image(systemName: "wind").font(.system(size: 10))
-                                    } else { Spacer().frame(width: 10) }
+                                    Group {
+                                        if (drink.type ?? "").contains("tea") {
+                                            Image(systemName: "wind")
+                                        } else {
+                                            Color.clear
+                                        }
+                                    }
+                                    .frame(width: 10, height: 10)
 
-                                    if (drink.type ?? "").contains("juice") {
-                                        Image(systemName: "cube.fill").font(.system(size: 10))
-                                    } else { Spacer().frame(width: 10) }
+                                    Group {
+                                        if (drink.type ?? "").contains("juice") {
+                                            Image(systemName: "cube.fill")
+                                        } else {
+                                            Color.clear
+                                        }
+                                    }
+                                    .frame(width: 10, height: 10)
                                 }
+                                .frame(height: 10)
+                                
                             }
                             .padding(4)
                         }
@@ -77,6 +95,13 @@ struct ContentView: View {
             .padding()
             .navigationBarHidden(true)
         }
+        
+        // TODO: Remove before release
+        // Uncomment to clear drinks from setup
+        // .onAppear {
+        //     deleteAllDrinks()
+        // }
+        
         .sheet(isPresented: $showingAddDrink) {
             AddDrinkView()
         }
@@ -119,5 +144,14 @@ struct ContentView: View {
 
     private func hydrationPercent() -> Int {
         min(100, hydrationMl() * 100 / hydrationGoal)
+    }
+    
+    
+    //TODO: Remove before release
+    private func deleteAllDrinks() {
+        for drink in drinks {
+            viewContext.delete(drink)
+        }
+        try? viewContext.save()
     }
 }

@@ -30,14 +30,31 @@ let quickPicks: [QuickDrink] = [
     QuickDrink(type: "milk", amount: 150, group: .high, hasSugar: false, hasSalt: false, strength: nil)
 ]
 
+let drinkSubOptions: [BaseDrinkType: [String]] = [
+    .water: ["Plain", "Sparkling", "Squash (Sugar Free)"],
+    .tea: ["Herbal", "Matcha", "Green"],
+    .coffee: ["Instant", "Filter", "Cafetière", "Latte", "Cappuccino"],
+    .milk: ["Skimmed", "Semi-skimmed", "Full Fat", "Oat Milk", "Almond Milk"],
+    .alcohol: ["Wine", "Beer", "Cider", "Tonic"],
+    .softdrink: ["Coke", "Lemonade", "Fanta"],
+    .sweet: ["Hot Chocolate", "Milkshake", "Oat Milk"],
+    .sports: ["Lucozade", "Isotonic", "Protein Water"]
+]
+
+
+
 struct AddDrinkView: View {
+    
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var selectedBaseDrink: BaseDrinkType?
+    @State private var selectedSubOption: String?
+    @State private var volume: Double = 200
 
     var existingDrink: Drink? = nil
 
     @State private var selectedType: String = "water"
-    @State private var amount: Int = 200
+
 
     let drinkTypes = ["water", "tea", "juice", "coffee", "milk"]
 
@@ -51,7 +68,7 @@ struct AddDrinkView: View {
                             ForEach(quickPicks, id: \.self) { drink in
                                 Button(action: {
                                     selectedType = drink.type
-                                    amount = drink.amount
+                                    volume = drink.amount
                                     saveDrink()
                                 }) {
                                     ZStack {
@@ -97,20 +114,45 @@ struct AddDrinkView: View {
                         .padding(.vertical, 4)
                     }
                 }
-
-                Section(header: Text("Drink Type")) {
-                    Picker("Drink Type", selection: $selectedType) {
-                        ForEach(drinkTypes, id: \.self) { type in
-                            Text(type.capitalized)
+                
+                .padding(.vertical, 2)
+                
+                Section(header: Text("Build your own")) {
+                    BaseDrinkPickerView(selectedDrink: $selectedBaseDrink)
+                }
+                
+                if let base = selectedBaseDrink,
+                   let options = drinkSubOptions[base] {
+                    Section(header: Text("Type")) {
+                        Picker("Sub-type", selection: $selectedSubOption) {
+                            ForEach(options, id: \.self) { option in
+                                Text(option)
+                            }
                         }
+                        .pickerStyle(.wheel) // You can change this to .segmented or .wheel or .menu
                     }
                 }
-
+                
+                // TODO: Post-MVP - Store last used sub-option per base drink type
+                // TODO: Post-MVP - Allow custom sub-options to be added (e.g. Starbucks favourites)
+                
                 Section(header: Text("Amount")) {
-                    Stepper(value: $amount, in: 50...1000, step: 50) {
-                        Text("\(amount) ml")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Volume: \(Int(volume)) ml")
+                            .font(.subheadline)
+                        
+                      //  let hydrationPercent = hydrationValue(for: selectedBaseDrink) * 100
+                                
+                      //  Text("Hydration impact: \(Int(hydrationPercent))%")
+                      //      .font(.caption)
+                      //      .foregroundColor(hydrationPercent == 100 ? .green : .orange)
+
+                        Slider(value: $volume, in: 0...2000, step: 50)
                     }
                 }
+                
+                
+                
             }
             .navigationTitle(existingDrink == nil ? "Add Drink" : "Edit Drink")
             .toolbar {
@@ -130,23 +172,54 @@ struct AddDrinkView: View {
         .onAppear {
             if let drink = existingDrink {
                 selectedType = drink.type ?? "water"
-                amount = Int(drink.amount)
+                volume = Int(drink.amount)
             }
+            if selectedBaseDrink != nil {
+                    loadLastVolume(for: selectedBaseDrink)
+                }
         }
+    }
+    
+    private func loadLastVolume(for type: BaseDrinkType?) {
+        guard let key = type?.rawValue else { return }
+        let saved = UserDefaults.standard.double(forKey: "volume_\(key)")
+        if saved > 0 {
+            volume = saved
+        } else {
+            volume = 200
+        }
+    }
+    
+    private func saveLastVolume(for type: BaseDrinkType?) {
+        guard let key = type?.rawValue else { return }
+        UserDefaults.standard.set(volume, forKey: "volume_\(key)")
     }
 
     private func saveDrink() {
         let drink = existingDrink ?? Drink(context: viewContext)
 
         drink.timestamp = existingDrink?.timestamp ?? Date()
-        drink.amount = Int64(amount)
+        drink.amount = Int64(volume)
         drink.type = selectedType
 
+        saveLastVolume(for: selectedBaseDrink)
+        
         do {
             try viewContext.save()
             dismiss()
         } catch {
             print("⚠️ Failed to save drink: \(error)")
+        }
+    }
+    
+    private func hydrationValue(for type: BaseDrinkType?) -> Double {
+        switch type {
+        case .coffee, .tea, .alcohol, .softdrink:
+            return 0.8
+        case .sports:
+            return 1.1 // TODO: refine later
+        default:
+            return 1.0
         }
     }
 
